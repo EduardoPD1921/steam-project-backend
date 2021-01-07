@@ -20,14 +20,14 @@ class UserLogin {
         $stmt->execute();
 
         if ($stmt->rowCount() > 0):
-            $passwordValidate = "SELECT pssword, account_auth FROM users WHERE email = '$this->email'";
+            $passwordValidate = "SELECT password, account_auth FROM users WHERE email = '$this->email'";
             
             $stmt = Connection::getConn()->prepare($passwordValidate);
             $stmt->execute();
 
             $loginInfo = $stmt->fetch();
 
-            if (password_verify($this->password, $loginInfo['pssword'])):
+            if (password_verify($this->password, $loginInfo['password'])):
                 if ($loginInfo['account_auth'] != 0):
                     $userInfo = "SELECT * FROM users WHERE email = '$this->email'";
 
