@@ -1,14 +1,15 @@
 <?php
 
 require_once('../Connection.php');
+require_once('../vendor/autoload.php');
 
 class UserUpdateInfo {
-    private $id;
-    private $userName;
-    private $email;
-    private $phoneNumber;
+    private string $id;
+    private string $userName;
+    private string $email;
+    private string $phoneNumber;
 
-    static $errors = array();
+    static array $errors = array();
 
     public function setId($id) {
         $this->id = $id;
@@ -28,7 +29,7 @@ class UserUpdateInfo {
 
     public function update() {
         if (isset($this->userName)):
-            if (mb_strlen($this->userName) >= 3 && mb_strlen($this->userName) <=15):
+            if (mb_strlen($this->userName) >= 3 && mb_strlen($this->userName) <= 15):
                 try {
                     $sql = "UPDATE users SET displayName = '$this->userName' WHERE id = '$this->id'";
                     $stmt = Connection::getConn()->prepare($sql);
@@ -42,7 +43,7 @@ class UserUpdateInfo {
         endif;
 
         if (isset($this->email)):
-            if (mb_strlen($this->email) > 3):
+            if (filter_var($this->email, FILTER_VALIDATE_EMAIL)):
                 try {
                     $sql = "UPDATE users SET email = '$this->email' WHERE id = '$this->id'";
                     $stmt = Connection::getConn()->prepare($sql);
@@ -56,12 +57,25 @@ class UserUpdateInfo {
         endif;
 
         if (isset($this->phoneNumber)):
+            $phoneUtil = \libphonenumber\PhoneNumberUtil::getInstance();
+
             try {
-                $sql = "UPDATE users SET phoneNumber = '$this->phoneNumber' WHERE id = '$this->id'";
-                $stmt = Connection::getConn()->prepare($sql);
-                $stmt->execute();
-            } catch(PDOException $e) {
-                echo 'Error! '.$e->getMessage();
+                $phoneNumberProto = $phoneUtil->parse($this->phoneNumber);
+                $isValid = $phoneUtil->isValidNumber($phoneNumberProto);
+
+                if ($isValid == true):
+                    try {
+                        $sql = "UPDATE users SET phoneNumber = '$this->phoneNumber' WHERE id = '$this->id'";
+                        $stmt = Connection::getConn()->prepare($sql);
+                        $stmt->execute();
+                    } catch(PDOException $e) {
+                        echo 'Error '.$e->getMessage();
+                    }
+                else:
+                    array_push(self::$errors, 'invalid-phonenumber');
+                endif;
+            } catch(\libphonenumber\NumberParseException $e) {
+                array_push(self::$errors, 'invalid-phonenumber');
             }
         endif;
 
