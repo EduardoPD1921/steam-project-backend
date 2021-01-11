@@ -10,6 +10,7 @@ class UserUpdateInfo {
     private string $phoneNumber;
 
     static array $errors = array();
+    static array $success = array();
 
     public function setId($id) {
         $this->id = $id;
@@ -30,60 +31,44 @@ class UserUpdateInfo {
     public function update() {
         if (isset($this->userName)):
             if (mb_strlen($this->userName) >= 3 && mb_strlen($this->userName) <= 15):
-                try {
-                    $sql = "UPDATE users SET displayName = '$this->userName' WHERE id = '$this->id'";
-                    $stmt = Connection::getConn()->prepare($sql);
+                if (filter_var($this->email, FILTER_VALIDATE_EMAIL)):
+                    $sql = "SELECT * FROM users WHERE email = '$this->email'";
+                    $stmt = Connection::getCOnn()->prepare($sql);
                     $stmt->execute();
-                } catch(PDOException $e) {
-                    echo 'Error! '.$e->getMessage();
-                }
-            else:
-                array_push(self::$errors, 'invalid-username');
-            endif;
-        endif;
 
-        if (isset($this->email)):
-            if (filter_var($this->email, FILTER_VALIDATE_EMAIL)):
-                try {
-                    $sql = "UPDATE users SET email = '$this->email' WHERE id = '$this->id'";
-                    $stmt = Connection::getConn()->prepare($sql);
-                    $stmt->execute();
-                } catch(PDOException $e) {
-                    echo 'Error! '.$e->getMessage();
-                }
-            else:
-                array_push(self::$errors, 'invalid-email');
-            endif;
-        endif;
+                    if ($stmt->rowCount() == 0):
+                        $phoneUtil = \libphonenumber\PhoneNumberUtil::getInstance();
 
-        if (isset($this->phoneNumber)):
-            $phoneUtil = \libphonenumber\PhoneNumberUtil::getInstance();
+                        try {
+                            $phoneNumberProto = $phoneUtil->parse($this->phoneNumber);
+                            $isValid = $phoneUtil->isValidNumber($phoneNumberProto);
 
-            try {
-                $phoneNumberProto = $phoneUtil->parse($this->phoneNumber);
-                $isValid = $phoneUtil->isValidNumber($phoneNumberProto);
+                            if ($isValid == true):
+                                $sql = "UPDATE users SET email = '$this->email', displayName = '$this->userName', phoneNumber = '$this->phoneNumber' WHERE id = '$this->id'";
+                                $stmt = Connection::getConn()->prepare($sql);
+                                $stmt->execute();
 
-                if ($isValid == true):
-                    try {
-                        $sql = "UPDATE users SET phoneNumber = '$this->phoneNumber' WHERE id = '$this->id'";
-                        $stmt = Connection::getConn()->prepare($sql);
-                        $stmt->execute();
-                    } catch(PDOException $e) {
-                        echo 'Error '.$e->getMessage();
-                    }
+                                echo 'changes-saved';
+                            else:
+                                http_response_code(400);
+                                echo 'invalid-phonenumber';
+                            endif;
+                        } catch(\libphonenumber\NumberParseException $e) {
+                            http_response_code(400);
+                            echo 'invalid-phonenumber';
+                        }
+                    else:
+                        http_response_code(400);
+                        echo 'email-already-inuse';
+                    endif;
                 else:
-                    array_push(self::$errors, 'invalid-phonenumber');
+                    http_response_code(400);
+                    echo 'invalid-email';
                 endif;
-            } catch(\libphonenumber\NumberParseException $e) {
-                array_push(self::$errors, 'invalid-phonenumber');
-            }
-        endif;
-
-        if (empty(self::$errors)):
-            echo 'changes-saved';
-        else:
-            http_response_code(400);
-            echo json_encode(self::$errors);
+            else:
+                http_response_code(400);
+                echo 'invalid-username';
+            endif;
         endif;
     }
 }
