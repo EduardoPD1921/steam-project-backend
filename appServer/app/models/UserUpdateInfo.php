@@ -8,9 +8,7 @@ class UserUpdateInfo {
     private string $userName;
     private string $email;
     private string $phoneNumber;
-
-    static array $errors = array();
-    static array $success = array();
+    private string $photoUrl;
 
     public function setId($id) {
         $this->id = $id;
@@ -26,6 +24,10 @@ class UserUpdateInfo {
 
     public function setPhoneNumber($phoneNumber) {
         $this->phoneNumber = $phoneNumber;
+    }
+
+    public function setPhotoUrl($photoUrl) {
+        $this->photoUrl = $photoUrl;
     }
 
     public function update() {
@@ -44,7 +46,7 @@ class UserUpdateInfo {
                             $isValid = $phoneUtil->isValidNumber($phoneNumberProto);
 
                             if ($isValid == true):
-                                $sql = "UPDATE users SET email = '$this->email', displayName = '$this->userName', phoneNumber = '$this->phoneNumber' WHERE id = '$this->id'";
+                                $sql = "UPDATE users SET email = '$this->email', displayName = '$this->userName', phoneNumber = '$this->phoneNumber', photoUrl = '$this->photoUrl' WHERE id = '$this->id'";
                                 $stmt = Connection::getConn()->prepare($sql);
                                 $stmt->execute();
 
